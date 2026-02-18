@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Safety Executive Dashboard</title>
+
+<title>Violation Dashboard 2026</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
@@ -14,32 +17,36 @@ height:260px;
 </style>
 
 </head>
+
 <body class="bg-gray-100">
 
 <div class="max-w-7xl mx-auto p-6">
 
-<h1 class="text-3xl font-bold mb-4">Safety & Violation Executive Dashboard</h1>
+<h1 class="text-3xl font-bold mb-6">
+Violation Dashboard 2026
+</h1>
+
 
 <!-- KPI -->
 <div class="grid grid-cols-4 gap-4 mb-6">
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Total Violations</div>
+<div class="text-gray-500">Total Violations</div>
 <div id="kpiTotal" class="text-2xl font-bold">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">OOS Violations</div>
+<div class="text-gray-500">OOS Violations</div>
 <div id="kpiOOS" class="text-2xl font-bold text-red-600">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Total Severity Weight</div>
+<div class="text-gray-500">Total Weight</div>
 <div id="kpiWeight" class="text-2xl font-bold text-orange-600">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Average Severity</div>
+<div class="text-gray-500">Avg Weight</div>
 <div id="kpiAvg" class="text-2xl font-bold text-green-600">0</div>
 </div>
 
@@ -47,11 +54,11 @@ height:260px;
 
 
 <!-- Charts -->
-<div class="grid grid-cols-2 gap-6">
+<div class="grid grid-cols-2 gap-6 mb-6">
 
 <div class="bg-white p-4 rounded shadow">
 <div class="font-semibold mb-2">Violation by BASIC</div>
-<canvas id="basicChart" class="chart-box"></canvas>
+<canvas id="basicChart"></canvas>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
@@ -65,57 +72,96 @@ height:260px;
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">Monthly Trend</div>
-<canvas id="trendChart"></canvas>
+<div class="font-semibold mb-2">Monthly Total Weight</div>
+<canvas id="monthChart"></canvas>
 </div>
 
 </div>
 
+
+<!-- Driver Table -->
+<div class="bg-white p-4 rounded shadow">
+
+<div class="font-semibold mb-4">
+Driver Violation List
 </div>
+
+<div class="overflow-auto max-h-96">
+
+<table class="min-w-full text-sm">
+
+<thead class="bg-gray-200">
+
+<tr>
+
+<th class="p-2 text-left">Driver</th>
+<th class="p-2 text-left">Truck</th>
+<th class="p-2 text-left">Date</th>
+<th class="p-2 text-left">Violation</th>
+<th class="p-2 text-left">BASIC</th>
+<th class="p-2 text-left">Weight</th>
+
+</tr>
+
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+</div>
+
 
 
 <script>
 
 
-// PUT YOUR GITHUB RAW CSV LINK HERE
-const csvUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/VIOLATION%20SHEET%202026.csv";
+// PUT YOUR GITHUB CSV LINK HERE
+const csvUrl =
+"VIOLATION SHEET 2026.csv";
 
 
-let charts = {};
-
-
-// Load CSV
 fetch(csvUrl)
-.then(res => res.text())
-.then(csv => {
+.then(res=>res.text())
+.then(csv=>{
 
-const data = parseCSV(csv);
+const data=parseCSV(csv);
 
 updateKPI(data);
+
 createCharts(data);
+
+createTable(data);
 
 });
 
 
 
 
-// CSV parser
 function parseCSV(text){
 
-const rows = text.split("\n").slice(1);
+const rows=text.split("\n").slice(1);
 
 return rows.map(r=>{
 
-const cols = r.split(",");
+const c=r.split(",");
 
-return {
+return{
 
-company: cols[3],
-driver: cols[9],
-basic: cols[11],
-weight: Number(cols[15]) || 0,
-oos: cols[16]?.trim().toUpperCase() === "YES",
-month: cols[19]
+company:c[3],
+truck:c[8],
+driver:c[9],
+date:c[10],
+basic:c[11],
+violation:c[12],
+weight:Number(c[15])||0,
+oos:c[16]=="YES",
+month:c[19]
 
 };
 
@@ -125,88 +171,114 @@ month: cols[19]
 
 
 
-
-// KPI
 function updateKPI(data){
 
-const total = data.length;
-const oos = data.filter(x=>x.oos).length;
-const weight = data.reduce((a,b)=>a+b.weight,0);
+const total=data.length;
 
-document.getElementById("kpiTotal").innerText = total;
-document.getElementById("kpiOOS").innerText = oos;
-document.getElementById("kpiWeight").innerText = weight;
-document.getElementById("kpiAvg").innerText = (weight/total).toFixed(1);
+const oos=data.filter(x=>x.oos).length;
+
+const weight=data.reduce((a,b)=>a+b.weight,0);
+
+document.getElementById("kpiTotal").innerText=total;
+
+document.getElementById("kpiOOS").innerText=oos;
+
+document.getElementById("kpiWeight").innerText=weight;
+
+document.getElementById("kpiAvg").innerText=
+(weight/total).toFixed(1);
 
 }
 
 
 
-// Charts
+
 function createCharts(data){
 
-// BASIC
-const basic = groupSum(data,"basic");
+Chart.register(ChartDataLabels);
 
-charts.basic = new Chart(basicChart,{
-type:"doughnut",
-data:{
-labels:Object.keys(basic),
-datasets:[{data:Object.values(basic)}]
-}
-});
+
+// BASIC
+createChart(
+"basicChart",
+"doughnut",
+group(data,"basic")
+);
 
 
 // Company
-const company = groupSum(data,"company");
-
-charts.company = new Chart(companyChart,{
-type:"bar",
-data:{
-labels:Object.keys(company),
-datasets:[{data:Object.values(company)}]
-}
-});
+createChart(
+"companyChart",
+"bar",
+group(data,"company")
+);
 
 
 // OOS
-const oosCount = data.filter(x=>x.oos).length;
-
-charts.oos = new Chart(oosChart,{
-type:"pie",
-data:{
-labels:["OOS","Non OOS"],
-datasets:[{
-data:[oosCount,data.length-oosCount]
-}]
+createChart(
+"oosChart",
+"pie",
+{
+"OOS":data.filter(x=>x.oos).length,
+"Non OOS":data.filter(x=>!x.oos).length
 }
+);
+
+
+// Month
+createChart(
+"monthChart",
+"line",
+group(data,"month")
+);
+
+}
+
+
+
+function createChart(id,type,obj){
+
+new Chart(
+document.getElementById(id),
+{
+
+type:type,
+
+data:{
+labels:Object.keys(obj),
+datasets:[{
+data:Object.values(obj)
+}]
+},
+
+options:{
+
+plugins:{
+datalabels:{
+color:"black",
+anchor:"end",
+align:"top"
+}
+}
+
+}
+
 });
 
-
-// Trend
-const trend = groupSum(data,"month");
-
-charts.trend = new Chart(trendChart,{
-type:"line",
-data:{
-labels:Object.keys(trend),
-datasets:[{
-data:Object.values(trend)
-}]
-}
-});
-
 }
 
 
 
-// helper
-function groupSum(data,key){
+
+function group(data,key){
 
 const result={};
 
 data.forEach(d=>{
-result[d[key]]=(result[d[key]]||0)+d.weight;
+
+result[d[key]]=
+(result[d[key]]||0)+d.weight;
+
 });
 
 return result;
@@ -214,7 +286,39 @@ return result;
 }
 
 
+
+
+function createTable(data){
+
+const body=document.getElementById("tableBody");
+
+body.innerHTML="";
+
+data.slice(0,200).forEach(d=>{
+
+body.innerHTML+=`
+
+<tr class="border-b">
+
+<td class="p-2">${d.driver}</td>
+<td class="p-2">${d.truck}</td>
+<td class="p-2">${d.date}</td>
+<td class="p-2">${d.violation}</td>
+<td class="p-2">${d.basic}</td>
+<td class="p-2 font-semibold">${d.weight}</td>
+
+</tr>
+
+`;
+
+});
+
+}
+
+
+
 </script>
+
 
 </body>
 </html>
