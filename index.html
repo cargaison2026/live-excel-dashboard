@@ -62,6 +62,7 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 <h1>Safety & Violation Executive Dashboard</h1>
 
 <div class="kpi-container">
+
 <div class="kpi">
 <h2 id="total">0</h2>
 <p>Total Violations</p>
@@ -81,51 +82,92 @@ box-shadow:0 3px 10px rgba(0,0,0,0.1);
 <h2 id="avgWeight">0</h2>
 <p>Avg Weight / Violation</p>
 </div>
+
 </div>
 
 <div class="chart-grid">
+
 <canvas id="basicChart"></canvas>
+
 <canvas id="companyChart"></canvas>
+
 <canvas id="oosChart"></canvas>
+
 <canvas id="weekChart"></canvas>
+
 </div>
 
 <script>
 
-const csvUrl = "PASTE_YOUR_CSV_DOWNLOAD_LINK_HERE";
+const csvUrl =
+"https://cargaisonlogistics-my.sharepoint.com/:x:/g/personal/osama_cargosolutionexpress_com/IQB97JXf6jOtTKPv8vdrU2LYARAkFd9zTy0nMdyupdG9C9A?download=1";
+
 
 Papa.parse(csvUrl, {
+
 download: true,
 header: true,
+
 complete: function(results) {
 
-const data = results.data.filter(row => row["Driver Name"]);
+const data =
+results.data.filter(row => row["Driver Name"]);
+
 
 const total = data.length;
 
-const oos = data.filter(row => row["Out of Service"]?.trim() === "YES").length;
+const oos =
+data.filter(row =>
+row["Out of Service"] &&
+row["Out of Service"].toUpperCase() === "YES"
+).length;
 
-const totalWeight = data.reduce((sum,row)=> sum + Number(row["TOTAL Weight"] || 0),0);
 
-const avgWeight = totalWeight / total;
+const totalWeight =
+data.reduce((sum,row) =>
+sum + Number(row["TOTAL Weight"] || 0),0);
+
+
+const avgWeight =
+total > 0 ? totalWeight / total : 0;
+
 
 document.getElementById("total").innerText = total;
-document.getElementById("oos").innerText = oos;
-document.getElementById("totalWeight").innerText = totalWeight;
-document.getElementById("avgWeight").innerText = avgWeight.toFixed(2);
 
-function groupBy(field) {
+document.getElementById("oos").innerText = oos;
+
+document.getElementById("totalWeight").innerText =
+totalWeight;
+
+document.getElementById("avgWeight").innerText =
+avgWeight.toFixed(2);
+
+
+
+function groupBy(field){
+
 const map = {};
-data.forEach(row=>{
+
+data.forEach(row => {
+
 const key = row[field] || "Unknown";
+
 map[key] = (map[key] || 0) + 1;
+
 });
+
 return map;
+
 }
 
+
+
 function createChart(id,type,labels,values,label){
+
 new Chart(document.getElementById(id),{
+
 type:type,
+
 data:{
 labels:labels,
 datasets:[{
@@ -133,38 +175,69 @@ label:label,
 data:values
 }]
 },
+
 options:{
 responsive:true,
-plugins:{legend:{display:true}}
+plugins:{
+legend:{display:true}
 }
+}
+
 });
+
 }
+
+
 
 const basicData = groupBy("BASIC");
-createChart("basicChart","bar",
+
+createChart(
+"basicChart",
+"bar",
 Object.keys(basicData),
 Object.values(basicData),
-"Violations by BASIC");
+"Violations by BASIC"
+);
+
+
 
 const companyData = groupBy("Company");
-createChart("companyChart","bar",
+
+createChart(
+"companyChart",
+"bar",
 Object.keys(companyData),
 Object.values(companyData),
-"Violations by Company");
+"Violations by Company"
+);
+
+
 
 const oosData = groupBy("Out of Service");
-createChart("oosChart","pie",
+
+createChart(
+"oosChart",
+"pie",
 Object.keys(oosData),
 Object.values(oosData),
-"OOS Distribution");
+"OOS Distribution"
+);
+
+
 
 const weekData = groupBy("Week");
-createChart("weekChart","line",
+
+createChart(
+"weekChart",
+"line",
 Object.keys(weekData),
 Object.values(weekData),
-"Weekly Trend");
+"Weekly Violation Trend"
+);
+
 
 }
+
 });
 
 </script>
