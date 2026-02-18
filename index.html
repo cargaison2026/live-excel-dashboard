@@ -2,20 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
 <title>Violation Dashboard 2026</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-.chart-box{
-height:260px;
-}
+.chart-box{height:260px;}
 </style>
-
 </head>
 
 <body class="bg-gray-100">
@@ -27,38 +21,65 @@ Violation Dashboard 2026
 </h1>
 
 
+<!-- FILTERS -->
+<div class="bg-white p-4 rounded shadow mb-6 flex gap-6">
+
+<div>
+<label class="text-sm text-gray-500">Company</label><br>
+<select id="companyFilter" class="border p-2 rounded">
+<option value="All">All</option>
+</select>
+</div>
+
+<div>
+<label class="text-sm text-gray-500">Driver</label><br>
+<select id="driverFilter" class="border p-2 rounded">
+<option value="All">All</option>
+</select>
+</div>
+
+</div>
+
+
+
 <!-- KPI -->
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-5 gap-4 mb-6">
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500">Total Violations</div>
+<div class="text-gray-500 text-sm">Total Violations</div>
 <div id="kpiTotal" class="text-2xl font-bold">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500">OOS Violations</div>
+<div class="text-gray-500 text-sm">OOS Violations</div>
 <div id="kpiOOS" class="text-2xl font-bold text-red-600">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500">Total Weight</div>
+<div class="text-gray-500 text-sm">Total Weight</div>
 <div id="kpiWeight" class="text-2xl font-bold text-orange-600">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500">Avg Weight</div>
+<div class="text-gray-500 text-sm">Average Weight</div>
 <div id="kpiAvg" class="text-2xl font-bold text-green-600">0</div>
 </div>
 
+<div class="bg-white p-4 rounded shadow">
+<div class="text-gray-500 text-sm">Risk Score</div>
+<div id="riskScore" class="text-2xl font-bold">0</div>
+</div>
+
 </div>
 
 
+
 <!-- Charts -->
-<div class="grid grid-cols-2 gap-6 mb-6">
+<div class="grid grid-cols-2 gap-6">
 
 <div class="bg-white p-4 rounded shadow">
 <div class="font-semibold mb-2">Violation by BASIC</div>
-<canvas id="basicChart"></canvas>
+<canvas id="basicChart" class="chart-box"></canvas>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
@@ -72,47 +93,16 @@ Violation Dashboard 2026
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">Monthly Total Weight</div>
-<canvas id="monthChart"></canvas>
+<div class="font-semibold mb-2">Monthly Trend</div>
+<canvas id="trendChart"></canvas>
+</div>
+
+<div class="bg-white p-4 rounded shadow col-span-2">
+<div class="font-semibold mb-2">Top 10 Worst Drivers (By Weight)</div>
+<canvas id="topDriverChart"></canvas>
 </div>
 
 </div>
-
-
-<!-- Driver Table -->
-<div class="bg-white p-4 rounded shadow">
-
-<div class="font-semibold mb-4">
-Driver Violation List
-</div>
-
-<div class="overflow-auto max-h-96">
-
-<table class="min-w-full text-sm">
-
-<thead class="bg-gray-200">
-
-<tr>
-
-<th class="p-2 text-left">Driver</th>
-<th class="p-2 text-left">Truck</th>
-<th class="p-2 text-left">Date</th>
-<th class="p-2 text-left">Violation</th>
-<th class="p-2 text-left">BASIC</th>
-<th class="p-2 text-left">Weight</th>
-
-</tr>
-
-</thead>
-
-<tbody id="tableBody"></tbody>
-
-</table>
-
-</div>
-
-</div>
-
 
 </div>
 
@@ -120,49 +110,39 @@ Driver Violation List
 
 <script>
 
+const csvUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/VIOLATION%20SHEET%202026.csv";
 
-// PUT YOUR GITHUB CSV LINK HERE
-const csvUrl =
-"VIOLATION SHEET 2026.csv";
-
+let fullData = [];
+let charts = {};
 
 fetch(csvUrl)
-.then(res=>res.text())
-.then(csv=>{
+.then(res => res.text())
+.then(csv => {
 
-const data=parseCSV(csv);
+fullData = parseCSV(csv);
 
-updateKPI(data);
-
-createCharts(data);
-
-createTable(data);
+populateFilters();
+applyFilters();
 
 });
 
 
 
-
 function parseCSV(text){
 
-const rows=text.split("\n").slice(1);
+const rows = text.split("\n").slice(1);
 
 return rows.map(r=>{
 
-const c=r.split(",");
+const c = r.split(",");
 
-return{
-
+return {
 company:c[3],
-truck:c[8],
 driver:c[9],
-date:c[10],
 basic:c[11],
-violation:c[12],
 weight:Number(c[15])||0,
-oos:c[16]=="YES",
+oos:c[16]?.trim().toUpperCase()==="YES",
 month:c[19]
-
 };
 
 });
@@ -171,102 +151,139 @@ month:c[19]
 
 
 
-function updateKPI(data){
+function populateFilters(){
 
-const total=data.length;
+const companies = [...new Set(fullData.map(x=>x.company))];
 
-const oos=data.filter(x=>x.oos).length;
+companies.forEach(c=>{
+companyFilter.innerHTML += `<option value="${c}">${c}</option>`;
+});
 
-const weight=data.reduce((a,b)=>a+b.weight,0);
+companyFilter.addEventListener("change",()=>{
+updateDriverFilter();
+applyFilters();
+});
 
-document.getElementById("kpiTotal").innerText=total;
+driverFilter.addEventListener("change",applyFilters);
 
-document.getElementById("kpiOOS").innerText=oos;
+updateDriverFilter();
+}
 
-document.getElementById("kpiWeight").innerText=weight;
 
-document.getElementById("kpiAvg").innerText=
-(weight/total).toFixed(1);
+
+function updateDriverFilter(){
+
+driverFilter.innerHTML='<option value="All">All</option>';
+
+let selectedCompany = companyFilter.value;
+
+let drivers = fullData
+.filter(x=> selectedCompany==="All" || x.company===selectedCompany)
+.map(x=>x.driver);
+
+drivers = [...new Set(drivers)];
+
+drivers.forEach(d=>{
+driverFilter.innerHTML += `<option value="${d}">${d}</option>`;
+});
 
 }
 
+
+
+function applyFilters(){
+
+let data = fullData;
+
+if(companyFilter.value!=="All"){
+data = data.filter(x=>x.company===companyFilter.value);
+}
+
+if(driverFilter.value!=="All"){
+data = data.filter(x=>x.driver===driverFilter.value);
+}
+
+updateKPI(data);
+createCharts(data);
+
+}
+
+
+
+function updateKPI(data){
+
+const total = data.length;
+const oos = data.filter(x=>x.oos).length;
+const weight = data.reduce((a,b)=>a+b.weight,0);
+const avg = total ? (weight/total).toFixed(1) : 0;
+
+document.getElementById("kpiTotal").innerText = total;
+document.getElementById("kpiOOS").innerText = oos;
+document.getElementById("kpiWeight").innerText = weight;
+document.getElementById("kpiAvg").innerText = avg;
+
+const risk = weight > 500 ? "High" : weight > 200 ? "Medium" : "Low";
+
+const riskBox = document.getElementById("riskScore");
+riskBox.innerText = risk;
+
+riskBox.className = "text-2xl font-bold " +
+(risk==="High"?"text-red-600":risk==="Medium"?"text-yellow-600":"text-green-600");
+
+}
 
 
 
 function createCharts(data){
 
-Chart.register(ChartDataLabels);
+Object.values(charts).forEach(c=>c.destroy());
 
+charts.basic = new Chart(basicChart,{
+type:"doughnut",
+data:{labels:Object.keys(group(data,"basic")),
+datasets:[{data:Object.values(group(data,"basic"))}]}
+});
 
-// BASIC
-createChart(
-"basicChart",
-"doughnut",
-group(data,"basic")
-);
+charts.company = new Chart(companyChart,{
+type:"bar",
+data:{labels:Object.keys(group(data,"company")),
+datasets:[{data:Object.values(group(data,"company"))}]}
+});
 
-
-// Company
-createChart(
-"companyChart",
-"bar",
-group(data,"company")
-);
-
-
-// OOS
-createChart(
-"oosChart",
-"pie",
-{
-"OOS":data.filter(x=>x.oos).length,
-"Non OOS":data.filter(x=>!x.oos).length
-}
-);
-
-
-// Month
-createChart(
-"monthChart",
-"line",
-group(data,"month")
-);
-
-}
-
-
-
-function createChart(id,type,obj){
-
-new Chart(
-document.getElementById(id),
-{
-
-type:type,
-
+charts.oos = new Chart(oosChart,{
+type:"pie",
 data:{
-labels:Object.keys(obj),
-datasets:[{
-data:Object.values(obj)
-}]
-},
-
-options:{
-
-plugins:{
-datalabels:{
-color:"black",
-anchor:"end",
-align:"top"
+labels:["OOS","Non OOS"],
+datasets:[{data:[
+data.filter(x=>x.oos).length,
+data.filter(x=>!x.oos).length
+]}]
 }
-}
+});
 
-}
+charts.trend = new Chart(trendChart,{
+type:"line",
+data:{labels:Object.keys(group(data,"month")),
+datasets:[{data:Object.values(group(data,"month"))}]}
+});
 
+
+// Top 10 drivers
+let driverMap = group(data,"driver");
+
+let sorted = Object.entries(driverMap)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,10);
+
+charts.top = new Chart(topDriverChart,{
+type:"bar",
+data:{
+labels:sorted.map(x=>x[0]),
+datasets:[{data:sorted.map(x=>x[1])}]
+}
 });
 
 }
-
 
 
 
@@ -275,50 +292,14 @@ function group(data,key){
 const result={};
 
 data.forEach(d=>{
-
-result[d[key]]=
-(result[d[key]]||0)+d.weight;
-
+result[d[key]]=(result[d[key]]||0)+d.weight;
 });
 
 return result;
 
 }
 
-
-
-
-function createTable(data){
-
-const body=document.getElementById("tableBody");
-
-body.innerHTML="";
-
-data.slice(0,200).forEach(d=>{
-
-body.innerHTML+=`
-
-<tr class="border-b">
-
-<td class="p-2">${d.driver}</td>
-<td class="p-2">${d.truck}</td>
-<td class="p-2">${d.date}</td>
-<td class="p-2">${d.violation}</td>
-<td class="p-2">${d.basic}</td>
-<td class="p-2 font-semibold">${d.weight}</td>
-
-</tr>
-
-`;
-
-});
-
-}
-
-
-
 </script>
-
 
 </body>
 </html>
