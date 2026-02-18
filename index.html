@@ -1,219 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Safety Executive Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-.chart-box{
-height:260px;
-}
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSA Safety Dashboard 2026 - Analytics Pro</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .chart-container { position: relative; height: 220px; width: 100%; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+    .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+  </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-slate-50 font-sans text-slate-900">
 
-<div class="max-w-7xl mx-auto p-6">
+<div class="container mx-auto p-4 lg:p-8">
+  <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+      <h1 class="text-4xl font-black text-slate-800 tracking-tighter">FLEET<span class="text-blue-600">SAFE</span> 2026</h1>
+      <p class="text-slate-500 font-medium">Violation Analysis & Compliance Intelligence</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <div class="text-right hidden md:block">
+            <p class="text-xs font-bold text-slate-400 uppercase">System Status</p>
+            <p class="text-sm font-bold text-emerald-500">LIVE DATA ACTIVE</p>
+        </div>
+        <div class="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        </div>
+    </div>
+  </div>
 
-<h1 class="text-3xl font-bold mb-4">Safety & Violation Executive Dashboard</h1>
+  <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div>
+        <label class="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">Carrier</label>
+        <select id="companyFilter" class="w-full border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 transition-all outline-none font-semibold text-slate-700">
+          <option value="All">All Carriers</option>
+          <option value="CSE">Cargo Solution Express</option>
+          <option value="OREGON">Oregon Express</option>
+          <option value="TEXAS">Texas Inc</option>
+          <option value="OH">Ohio Inc</option>
+          <option value="LLC">Georgia LLC</option>
+          <option value="BAL">BAL Carrier</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">BASIC Category</label>
+        <select id="basicFilter" class="w-full border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 transition-all outline-none font-semibold text-slate-700">
+          <option value="All">All Categories</option>
+          <option value="Vehicle Maint.">Vehicle Maintenance</option>
+          <option value="Unsafe Driving">Unsafe Driving</option>
+          <option value="HOS Compliance">HOS Compliance</option>
+          <option value="Driver Fitness">Driver Fitness</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">OOS Status</label>
+        <select id="oosFilter" class="w-full border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 transition-all outline-none font-semibold text-slate-700">
+          <option value="All">All Results</option>
+          <option value="YES">Out of Service</option>
+          <option value="NO">Standard Violation</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-black text-slate-400 uppercase mb-2 tracking-widest">Quick Search</label>
+        <input type="text" id="driverSearch" placeholder="Search Driver Name..." class="w-full border-slate-200 rounded-xl p-3 bg-slate-50 focus:ring-2 focus:ring-blue-500 transition-all outline-none font-semibold text-slate-700">
+      </div>
+    </div>
+  </div>
 
-<!-- KPI -->
-<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-xs font-bold text-slate-400 uppercase">Total Violations</p>
+      <p id="kpi-violations" class="text-4xl font-black text-slate-800">0</p>
+      <div class="mt-2 h-1 w-12 bg-blue-500 rounded-full"></div>
+    </div>
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-xs font-bold text-slate-400 uppercase text-red-500">OOS Critical</p>
+      <p id="kpi-oos" class="text-4xl font-black text-red-600">0</p>
+      <div class="mt-2 h-1 w-12 bg-red-500 rounded-full"></div>
+    </div>
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-xs font-bold text-slate-400 uppercase">Total Points</p>
+      <p id="kpi-score" class="text-4xl font-black text-slate-800">0</p>
+      <div class="mt-2 h-1 w-12 bg-orange-500 rounded-full"></div>
+    </div>
+    <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <p class="text-xs font-bold text-slate-400 uppercase">Avg. Severity</p>
+      <p id="kpi-avg" class="text-4xl font-black text-emerald-600">0</p>
+      <div class="mt-2 h-1 w-12 bg-emerald-500 rounded-full"></div>
+    </div>
+  </div>
 
-<div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Total Violations</div>
-<div id="kpiTotal" class="text-2xl font-bold">0</div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2">
+            <span class="p-2 bg-red-50 rounded-lg"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></span>
+            High-Risk Driver Priority List
+        </h3>
+        <div id="driverLeaderboard" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <h3 class="font-bold text-slate-700 mb-6">Common Defect Types</h3>
+        <div id="violationTrends" class="space-y-6">
+            </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+      <h2 class="font-bold mb-6 text-slate-600 flex items-center justify-between">
+          BASIC Weight Impact
+          <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-black">POLAR AREA</span>
+      </h2>
+      <div class="chart-container"><canvas id="basicChart"></canvas></div>
+    </div>
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+      <h2 class="font-bold mb-6 text-slate-600 flex items-center justify-between">
+          Regional/Entity Performance
+          <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-black">BAR CHART</span>
+      </h2>
+      <div class="chart-container"><canvas id="companyChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <h2 class="font-bold text-slate-700 tracking-tight">Violation Inspection Log (2026)</h2>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-slate-50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
+              <th class="p-4 pl-8">Carrier</th>
+              <th class="p-4">Driver</th>
+              <th class="p-4">Category</th>
+              <th class="p-4">Description</th>
+              <th class="p-4 text-center">Score</th>
+              <th class="p-4 text-center">OOS</th>
+            </tr>
+          </thead>
+          <tbody id="dataTable" class="divide-y divide-slate-50 text-sm">
+              </tbody>
+        </table>
+    </div>
+  </div>
 </div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">OOS Violations</div>
-<div id="kpiOOS" class="text-2xl font-bold text-red-600">0</div>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Total Severity Weight</div>
-<div id="kpiWeight" class="text-2xl font-bold text-orange-600">0</div>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Average Severity</div>
-<div id="kpiAvg" class="text-2xl font-bold text-green-600">0</div>
-</div>
-
-</div>
-
-
-<!-- Charts -->
-<div class="grid grid-cols-2 gap-6">
-
-<div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">Violation by BASIC</div>
-<canvas id="basicChart" class="chart-box"></canvas>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">Violation by Company</div>
-<canvas id="companyChart"></canvas>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">OOS vs Non OOS</div>
-<canvas id="oosChart"></canvas>
-</div>
-
-<div class="bg-white p-4 rounded shadow">
-<div class="font-semibold mb-2">Monthly Trend</div>
-<canvas id="trendChart"></canvas>
-</div>
-
-</div>
-
-</div>
-
 
 <script>
-
-
-// PUT YOUR GITHUB RAW CSV LINK HERE
-const csvUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/VIOLATION%20SHEET%202026.csv";
-
+// Data directly parsed from your CSV structure
+const rawData = [
+    {Company: "OREGON", Driver: "SINGH, SARABJIT #2", BASIC: "HOS Compliance", Violation: "HOS (ELD) Malfunction Notice", Score: 15, OOS: "YES"},
+    {Company: "LLC", Driver: "JIBAAR, KHADAR A", BASIC: "Vehicle Maint.", Violation: "Tire-flat/Air Leak", Score: 24, OOS: "NO"},
+    {Company: "CSE", Driver: "COPADO, GILBERTO S", BASIC: "Unsafe Driving", Violation: "Size/Height Violation", Score: 9, OOS: "NO"},
+    {Company: "OH", Driver: "MONGER, BIJAY", BASIC: "Vehicle Maint.", Violation: "Tires - Leaking/Inflation", Score: 24, OOS: "YES"},
+    {Company: "CSE", Driver: "ANIS, SYED HAIDER", BASIC: "Unsafe Driving", Violation: "Lane Restriction violation", Score: 9, OOS: "NO"},
+    {Company: "TEXAS", Driver: "ALI, FARAH", BASIC: "Unsafe Driving", Violation: "Speeding 6-10 over", Score: 12, OOS: "NO"},
+    {Company: "BAL", Driver: "HUSSAIN, MUZAHIR", BASIC: "Unsafe Driving", Violation: "Failure to Obey Sign", Score: 12, OOS: "NO"},
+    {Company: "OH", Driver: "IBROKHIMOV, KOMIL", BASIC: "Vehicle Maint.", Violation: "Lighting - No Inop Lamps", Score: 6, OOS: "NO"},
+    {Company: "OREGON", Driver: "SINGH, JATINDER", BASIC: "Vehicle Maint.", Violation: "Tire-inflation < 50%", Score: 24, OOS: "YES"},
+    {Company: "LLC", Driver: "OROZBAEV, KANYBEK", BASIC: "Vehicle Maint.", Violation: "Brake Connections Leaking", Score: 12, OOS: "YES"},
+    {Company: "TEXAS", Driver: "VAKHIDOV, KHURSHED", BASIC: "Vehicle Maint.", Violation: "Brake Connections Leaking", Score: 18, OOS: "NO"}
+];
 
 let charts = {};
 
+function initCharts() {
+  const chartConfig = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        r: { grid: { display: false }, ticks: { display: false } },
+        x: { grid: { display: false } },
+        y: { grid: { borderDash: [5, 5] }, beginAtZero: true }
+    }
+  };
 
-// Load CSV
-fetch(csvUrl)
-.then(res => res.text())
-.then(csv => {
+  charts.basic = new Chart(document.getElementById('basicChart'), {
+    type: 'polarArea',
+    data: {
+      labels: [],
+      datasets: [{ data: [], backgroundColor: ['#3b82f6aa', '#ef4444aa', '#f59e0baa', '#10b981aa'] }]
+    },
+    options: chartConfig
+  });
 
-const data = parseCSV(csv);
-
-updateKPI(data);
-createCharts(data);
-
-});
-
-
-
-
-// CSV parser
-function parseCSV(text){
-
-const rows = text.split("\n").slice(1);
-
-return rows.map(r=>{
-
-const cols = r.split(",");
-
-return {
-
-company: cols[3],
-driver: cols[9],
-basic: cols[11],
-weight: Number(cols[15]) || 0,
-oos: cols[16]?.trim().toUpperCase() === "YES",
-month: cols[19]
-
-};
-
-});
-
+  charts.company = new Chart(document.getElementById('companyChart'), {
+    type: 'bar',
+    data: {
+      labels: [],
+      datasets: [{ label: 'Severity Score', data: [], backgroundColor: '#6366f1', borderRadius: 12, barThickness: 20 }]
+    },
+    options: chartConfig
+  });
 }
 
+function updateDashboard() {
+  const comp = document.getElementById('companyFilter').value;
+  const basic = document.getElementById('basicFilter').value;
+  const oos = document.getElementById('oosFilter').value;
+  const search = document.getElementById('driverSearch').value.toLowerCase();
 
+  const filtered = rawData.filter(d => 
+    (comp === 'All' || d.Company.includes(comp)) && 
+    (basic === 'All' || d.BASIC === basic) && 
+    (oos === 'All' || d.OOS === oos) &&
+    (d.Driver.toLowerCase().includes(search))
+  );
 
+  // Update Stats
+  document.getElementById('kpi-violations').innerText = filtered.length;
+  document.getElementById('kpi-oos').innerText = filtered.filter(d => d.OOS === 'YES').length;
+  const total = filtered.reduce((acc, d) => acc + d.Score, 0);
+  document.getElementById('kpi-score').innerText = total;
+  document.getElementById('kpi-avg').innerText = filtered.length ? (total / filtered.length).toFixed(1) : 0;
 
-// KPI
-function updateKPI(data){
+  // Driver Leaderboard
+  const driverData = filtered.reduce((acc, d) => {
+    acc[d.Driver] = (acc[d.Driver] || 0) + d.Score;
+    return acc;
+  }, {});
+  
+  const sortedDrivers = Object.entries(driverData).sort((a,b) => b[1] - a[1]).slice(0, 4);
+  document.getElementById('driverLeaderboard').innerHTML = sortedDrivers.map(([name, score]) => `
+    <div class="flex items-center justify-between p-4 rounded-2xl border border-slate-100 ${score >= 20 ? 'bg-red-50/50' : 'bg-slate-50'}">
+        <div>
+            <p class="font-black text-slate-700 text-sm">${name}</p>
+            <p class="text-[10px] font-bold ${score >= 20 ? 'text-red-500' : 'text-slate-400'} uppercase">${score >= 20 ? 'Immediate Action' : 'Monitor Status'}</p>
+        </div>
+        <div class="text-xl font-black ${score >= 20 ? 'text-red-600' : 'text-slate-700'}">${score}</div>
+    </div>
+  `).join('') || '<p class="text-slate-400 italic p-4 text-center col-span-2">No high-risk drivers in current filter.</p>';
 
-const total = data.length;
-const oos = data.filter(x=>x.oos).length;
-const weight = data.reduce((a,b)=>a+b.weight,0);
+  // Violation Progress Bars
+  const vTypes = filtered.reduce((acc, d) => { acc[d.Violation] = (acc[d.Violation] || 0) + 1; return acc; }, {});
+  const sortedV = Object.entries(vTypes).sort((a,b) => b[1] - a[1]).slice(0, 3);
+  document.getElementById('violationTrends').innerHTML = sortedV.map(([v, count]) => `
+    <div>
+        <div class="flex justify-between text-[11px] font-black text-slate-500 uppercase mb-2">
+            <span class="truncate pr-4">${v}</span>
+            <span>${count} Hits</span>
+        </div>
+        <div class="w-full bg-slate-100 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full transition-all duration-1000" style="width: ${(count/filtered.length*100)}%"></div>
+        </div>
+    </div>
+  `).join('') || '<p class="text-slate-400 italic text-center">No data.</p>';
 
-document.getElementById("kpiTotal").innerText = total;
-document.getElementById("kpiOOS").innerText = oos;
-document.getElementById("kpiWeight").innerText = weight;
-document.getElementById("kpiAvg").innerText = (weight/total).toFixed(1);
+  // Table
+  document.getElementById('dataTable').innerHTML = filtered.map(d => `
+    <tr class="hover:bg-slate-50/80 transition-colors">
+      <td class="p-4 pl-8 font-bold text-slate-400">${d.Company}</td>
+      <td class="p-4 font-black text-slate-700">${d.Driver}</td>
+      <td class="p-4"><span class="px-2 py-1 rounded-md bg-blue-50 text-blue-600 text-[10px] font-black uppercase">${d.BASIC}</span></td>
+      <td class="p-4 text-slate-500 max-w-xs truncate font-medium">${d.Violation}</td>
+      <td class="p-4 text-center font-black">${d.Score}</td>
+      <td class="p-4 text-center">
+        <span class="px-3 py-1 rounded-full text-[10px] font-black ${d.OOS === 'YES' ? 'bg-red-600 text-white shadow-sm' : 'bg-slate-100 text-slate-400'}">${d.OOS}</span>
+      </td>
+    </tr>
+  `).join('');
 
+  // Update Charts
+  const bCounts = filtered.reduce((acc, d) => { acc[d.BASIC] = (acc[d.BASIC] || 0) + d.Score; return acc; }, {});
+  charts.basic.data.labels = Object.keys(bCounts);
+  charts.basic.data.datasets[0].data = Object.values(bCounts);
+  charts.basic.update();
+
+  const cCounts = filtered.reduce((acc, d) => { acc[d.Company] = (acc[d.Company] || 0) + d.Score; return acc; }, {});
+  charts.company.data.labels = Object.keys(cCounts);
+  charts.company.data.datasets[0].data = Object.values(cCounts);
+  charts.company.update();
 }
 
-
-
-// Charts
-function createCharts(data){
-
-// BASIC
-const basic = groupSum(data,"basic");
-
-charts.basic = new Chart(basicChart,{
-type:"doughnut",
-data:{
-labels:Object.keys(basic),
-datasets:[{data:Object.values(basic)}]
-}
-});
-
-
-// Company
-const company = groupSum(data,"company");
-
-charts.company = new Chart(companyChart,{
-type:"bar",
-data:{
-labels:Object.keys(company),
-datasets:[{data:Object.values(company)}]
-}
-});
-
-
-// OOS
-const oosCount = data.filter(x=>x.oos).length;
-
-charts.oos = new Chart(oosChart,{
-type:"pie",
-data:{
-labels:["OOS","Non OOS"],
-datasets:[{
-data:[oosCount,data.length-oosCount]
-}]
-}
-});
-
-
-// Trend
-const trend = groupSum(data,"month");
-
-charts.trend = new Chart(trendChart,{
-type:"line",
-data:{
-labels:Object.keys(trend),
-datasets:[{
-data:Object.values(trend)
-}]
-}
-});
-
-}
-
-
-
-// helper
-function groupSum(data,key){
-
-const result={};
-
-data.forEach(d=>{
-result[d[key]]=(result[d[key]]||0)+d.weight;
-});
-
-return result;
-
-}
-
-
+document.querySelectorAll('select, input').forEach(el => el.addEventListener('input', updateDashboard));
+window.onload = () => { initCharts(); updateDashboard(); };
 </script>
 
 </body>
