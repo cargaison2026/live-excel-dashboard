@@ -1,59 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Live CSA Dashboard</title>
-
+<meta charset="UTF-8">
+<title>Live Violation Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
 
 <body class="bg-gray-100 p-6">
 
-<h1 class="text-3xl font-bold mb-4">Live Violation Dashboard</h1>
+<div class="max-w-7xl mx-auto bg-white p-6 shadow rounded">
 
-<div class="bg-white p-4 rounded shadow mb-4">
-Total Violations: <span id="total">0</span>
+<h1 class="text-2xl font-bold mb-4">Live Violation Dashboard</h1>
+
+<p class="mb-4">Total Violations: <span id="total">Loading...</span></p>
+
+<div style="height:300px">
+<canvas id="chart"></canvas>
 </div>
 
-<div class="bg-white p-4 rounded shadow">
-<canvas id="chart"></canvas>
+<table class="w-full mt-6 border">
+<thead>
+<tr class="bg-gray-200">
+<th class="p-2">Company</th>
+<th class="p-2">Driver</th>
+<th class="p-2">Score</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+
 </div>
 
 <script>
 
-// YOUR EXCEL EMBED LINK HERE
-const excelUrl =
-"https://cargaisonlogistics-my.sharepoint.com/personal/osama_cargosolutionexpress_com/_layouts/15/Doc.aspx?sourcedoc={080a1904-540a-4fac-a3c5-6a494d6d82ba}&action=embedview";
+// YOUR ONEDRIVE EXCEL EMBED LINK
+const excelURL = "https://cargaisonlogistics-my.sharepoint.com/personal/osama_cargosolutionexpress_com/_layouts/15/Doc.aspx?sourcedoc={080a1904-540a-4fac-a3c5-6a494d6d82ba}&action=embedview";
 
-// This loads Excel live
-fetch(excelUrl)
-.then(r => r.text())
-.then(data => {
+async function loadData(){
 
-const total = (data.match(/Violation/g) || []).length;
+// DEMO DATA (replace later with Excel API)
+const data = [
+{Company:"Express Inc", Driver:"John", Score:20},
+{Company:"Georgia LLC", Driver:"Mike", Score:15},
+{Company:"Ohio Inc", Driver:"Alex", Score:30}
+];
 
-document.getElementById("total").innerText = total;
+document.getElementById("total").innerText = data.length;
 
-new Chart(document.getElementById("chart"), {
+document.getElementById("table").innerHTML =
+data.map(d=>`
+<tr>
+<td class="p-2">${d.Company}</td>
+<td class="p-2">${d.Driver}</td>
+<td class="p-2">${d.Score}</td>
+</tr>
+`).join("");
 
-type: "bar",
+new Chart(document.getElementById("chart"),{
 
-data: {
+type:"bar",
 
-labels: ["Violations"],
+data:{
+labels:data.map(d=>d.Driver),
 
-datasets: [{
-
-data: [total]
-
+datasets:[{
+label:"Score",
+data:data.map(d=>d.Score)
 }]
-
 }
 
 });
 
-});
+}
+
+loadData();
 
 </script>
 
