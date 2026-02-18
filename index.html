@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Live CSA Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="bg-gray-100 p-6">
+
+<h1 class="text-3xl font-bold mb-4">Live Violation Dashboard</h1>
+
+<div class="bg-white p-4 rounded shadow mb-4">
+Total Violations: <span id="total">0</span>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<canvas id="chart"></canvas>
+</div>
+
+<script>
+
+// YOUR EXCEL EMBED LINK HERE
+const excelUrl =
+"https://cargaisonlogistics-my.sharepoint.com/personal/osama_cargosolutionexpress_com/_layouts/15/Doc.aspx?sourcedoc={080a1904-540a-4fac-a3c5-6a494d6d82ba}&action=embedview";
+
+// This loads Excel live
+fetch(excelUrl)
+.then(r => r.text())
+.then(data => {
+
+const total = (data.match(/Violation/g) || []).length;
+
+document.getElementById("total").innerText = total;
+
+new Chart(document.getElementById("chart"), {
+
+type: "bar",
+
+data: {
+
+labels: ["Violations"],
+
+datasets: [{
+
+data: [total]
+
+}]
+
+}
+
+});
+
+});
+
+</script>
+
+</body>
+</html>
