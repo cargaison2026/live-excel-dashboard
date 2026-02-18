@@ -2,192 +2,118 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Safety & Violation Executive Dashboard</title>
+<title>Violation Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
 <style>
 body{
-font-family: Arial, sans-serif;
-background:#f3f4f6;
-padding:30px;
-}
-
-h1{
-margin-bottom:25px;
-}
-
-.kpi-container{
-display:flex;
-gap:20px;
-margin-bottom:40px;
+font-family:Arial;
+background:#f4f6f9;
+padding:20px;
 }
 
 .kpi{
+display:inline-block;
 background:white;
-flex:1;
 padding:20px;
-border-radius:10px;
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
+margin:10px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+width:200px;
 text-align:center;
-}
-
-.kpi h2{
-margin:0;
-font-size:30px;
-color:#111827;
-}
-
-.kpi p{
-margin-top:6px;
-color:#6b7280;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:30px;
 }
 
 canvas{
 background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
+margin-top:20px;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 </style>
+
 </head>
 
 <body>
 
-<h1>Safety & Violation Executive Dashboard</h1>
-
-<div class="kpi-container">
+<h1>Live Safety Dashboard</h1>
 
 <div class="kpi">
 <h2 id="total">0</h2>
-<p>Total Violations</p>
+Total Violations
 </div>
 
 <div class="kpi">
 <h2 id="oos">0</h2>
-<p>Out of Service</p>
+Out of Service
 </div>
 
 <div class="kpi">
-<h2 id="totalWeight">0</h2>
-<p>Total Severity Weight</p>
+<h2 id="weight">0</h2>
+Total Weight
 </div>
 
-<div class="kpi">
-<h2 id="avgWeight">0</h2>
-<p>Average Weight / Violation</p>
-</div>
+<br>
 
-</div>
-
-<div class="grid">
-
-<canvas id="basicChart"></canvas>
-<canvas id="companyChart"></canvas>
-<canvas id="oosChart"></canvas>
-<canvas id="weekChart"></canvas>
-
-</div>
+<canvas id="chart1"></canvas>
+<canvas id="chart2"></canvas>
 
 <script>
 
 const csvUrl = "VIOLATION SHEET 2026.csv";
 
-Papa.parse(csvUrl, {
-download: true,
-header: true,
+Papa.parse(csvUrl,{
+download:true,
+header:true,
 
-complete: function(results){
+complete:function(results){
 
-const data = results.data.filter(row => row["Driver Name"]);
+const data = results.data.filter(x=>x["Driver Name"]);
 
-const total = data.length;
+document.getElementById("total").innerText = data.length;
 
-const oos = data.filter(row =>
-row["Out of Service"] &&
-row["Out of Service"].toUpperCase() === "YES"
-).length;
-
-const totalWeight = data.reduce((sum,row)=>
-sum + Number(row["TOTAL Weight"] || 0),0);
-
-const avgWeight = total > 0 ? totalWeight / total : 0;
-
-document.getElementById("total").innerText = total;
+const oos = data.filter(x=>x["Out of Service"]==="YES").length;
 document.getElementById("oos").innerText = oos;
-document.getElementById("totalWeight").innerText = totalWeight;
-document.getElementById("avgWeight").innerText = avgWeight.toFixed(2);
 
-function groupBy(field){
-const map = {};
+const weight = data.reduce((a,b)=>a+Number(b["TOTAL Weight"]||0),0);
+document.getElementById("weight").innerText = weight;
+
+const basicCount={};
+
 data.forEach(row=>{
-const key = row[field] || "Unknown";
-map[key] = (map[key] || 0) + 1;
+const key=row["BASIC"];
+basicCount[key]=(basicCount[key]||0)+1;
 });
-return map;
-}
 
-function createChart(id,type,labels,values,label){
-new Chart(document.getElementById(id),{
-type:type,
+new Chart(document.getElementById("chart1"),{
+type:"bar",
 data:{
-labels:labels,
+labels:Object.keys(basicCount),
 datasets:[{
-label:label,
-data:values
+label:"Violations by BASIC",
+data:Object.values(basicCount)
 }]
-},
-options:{
-responsive:true,
-plugins:{
-legend:{display:true}
-}
 }
 });
+
+const companyCount={};
+
+data.forEach(row=>{
+const key=row["Company"];
+companyCount[key]=(companyCount[key]||0)+1;
+});
+
+new Chart(document.getElementById("chart2"),{
+type:"pie",
+data:{
+labels:Object.keys(companyCount),
+datasets:[{
+data:Object.values(companyCount)
+}]
 }
-
-const basicData = groupBy("BASIC");
-createChart(
-"basicChart",
-"bar",
-Object.keys(basicData),
-Object.values(basicData),
-"Violations by BASIC Category"
-);
-
-const companyData = groupBy("Company");
-createChart(
-"companyChart",
-"bar",
-Object.keys(companyData),
-Object.values(companyData),
-"Violations by Company"
-);
-
-const oosData = groupBy("Out of Service");
-createChart(
-"oosChart",
-"pie",
-Object.keys(oosData),
-Object.values(oosData),
-"OOS Distribution"
-);
-
-const weekData = groupBy("Week");
-createChart(
-"weekChart",
-"line",
-Object.keys(weekData),
-Object.values(weekData),
-"Weekly Violation Trend"
-);
+});
 
 }
 
