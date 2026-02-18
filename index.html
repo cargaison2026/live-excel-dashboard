@@ -2,48 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Violation Dashboard 2026</title>
+<title>Safety Executive Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-.chart-box{height:260px;}
+.chart-box{
+height:260px;
+}
 </style>
-</head>
 
+</head>
 <body class="bg-gray-100">
 
 <div class="max-w-7xl mx-auto p-6">
 
-<h1 class="text-3xl font-bold mb-6">
-Violation Dashboard 2026
-</h1>
-
-
-<!-- FILTERS -->
-<div class="bg-white p-4 rounded shadow mb-6 flex gap-6">
-
-<div>
-<label class="text-sm text-gray-500">Company</label><br>
-<select id="companyFilter" class="border p-2 rounded">
-<option value="All">All</option>
-</select>
-</div>
-
-<div>
-<label class="text-sm text-gray-500">Driver</label><br>
-<select id="driverFilter" class="border p-2 rounded">
-<option value="All">All</option>
-</select>
-</div>
-
-</div>
-
-
+<h1 class="text-3xl font-bold mb-4">Safety & Violation Executive Dashboard</h1>
 
 <!-- KPI -->
-<div class="grid grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-4 gap-4 mb-6">
 
 <div class="bg-white p-4 rounded shadow">
 <div class="text-gray-500 text-sm">Total Violations</div>
@@ -56,22 +34,16 @@ Violation Dashboard 2026
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Total Weight</div>
+<div class="text-gray-500 text-sm">Total Severity Weight</div>
 <div id="kpiWeight" class="text-2xl font-bold text-orange-600">0</div>
 </div>
 
 <div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Average Weight</div>
+<div class="text-gray-500 text-sm">Average Severity</div>
 <div id="kpiAvg" class="text-2xl font-bold text-green-600">0</div>
 </div>
 
-<div class="bg-white p-4 rounded shadow">
-<div class="text-gray-500 text-sm">Risk Score</div>
-<div id="riskScore" class="text-2xl font-bold">0</div>
 </div>
-
-</div>
-
 
 
 <!-- Charts -->
@@ -97,52 +69,54 @@ Violation Dashboard 2026
 <canvas id="trendChart"></canvas>
 </div>
 
-<div class="bg-white p-4 rounded shadow col-span-2">
-<div class="font-semibold mb-2">Top 10 Worst Drivers (By Weight)</div>
-<canvas id="topDriverChart"></canvas>
 </div>
 
 </div>
-
-</div>
-
 
 
 <script>
 
+
+// PUT YOUR GITHUB RAW CSV LINK HERE
 const csvUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/VIOLATION%20SHEET%202026.csv";
 
-let fullData = [];
+
 let charts = {};
 
+
+// Load CSV
 fetch(csvUrl)
 .then(res => res.text())
 .then(csv => {
 
-fullData = parseCSV(csv);
+const data = parseCSV(csv);
 
-populateFilters();
-applyFilters();
+updateKPI(data);
+createCharts(data);
 
 });
 
 
 
+
+// CSV parser
 function parseCSV(text){
 
 const rows = text.split("\n").slice(1);
 
 return rows.map(r=>{
 
-const c = r.split(",");
+const cols = r.split(",");
 
 return {
-company:c[3],
-driver:c[9],
-basic:c[11],
-weight:Number(c[15])||0,
-oos:c[16]?.trim().toUpperCase()==="YES",
-month:c[19]
+
+company: cols[3],
+driver: cols[9],
+basic: cols[11],
+weight: Number(cols[15]) || 0,
+oos: cols[16]?.trim().toUpperCase() === "YES",
+month: cols[19]
+
 };
 
 });
@@ -151,135 +125,74 @@ month:c[19]
 
 
 
-function populateFilters(){
 
-const companies = [...new Set(fullData.map(x=>x.company))];
-
-companies.forEach(c=>{
-companyFilter.innerHTML += `<option value="${c}">${c}</option>`;
-});
-
-companyFilter.addEventListener("change",()=>{
-updateDriverFilter();
-applyFilters();
-});
-
-driverFilter.addEventListener("change",applyFilters);
-
-updateDriverFilter();
-}
-
-
-
-function updateDriverFilter(){
-
-driverFilter.innerHTML='<option value="All">All</option>';
-
-let selectedCompany = companyFilter.value;
-
-let drivers = fullData
-.filter(x=> selectedCompany==="All" || x.company===selectedCompany)
-.map(x=>x.driver);
-
-drivers = [...new Set(drivers)];
-
-drivers.forEach(d=>{
-driverFilter.innerHTML += `<option value="${d}">${d}</option>`;
-});
-
-}
-
-
-
-function applyFilters(){
-
-let data = fullData;
-
-if(companyFilter.value!=="All"){
-data = data.filter(x=>x.company===companyFilter.value);
-}
-
-if(driverFilter.value!=="All"){
-data = data.filter(x=>x.driver===driverFilter.value);
-}
-
-updateKPI(data);
-createCharts(data);
-
-}
-
-
-
+// KPI
 function updateKPI(data){
 
 const total = data.length;
 const oos = data.filter(x=>x.oos).length;
 const weight = data.reduce((a,b)=>a+b.weight,0);
-const avg = total ? (weight/total).toFixed(1) : 0;
 
 document.getElementById("kpiTotal").innerText = total;
 document.getElementById("kpiOOS").innerText = oos;
 document.getElementById("kpiWeight").innerText = weight;
-document.getElementById("kpiAvg").innerText = avg;
-
-const risk = weight > 500 ? "High" : weight > 200 ? "Medium" : "Low";
-
-const riskBox = document.getElementById("riskScore");
-riskBox.innerText = risk;
-
-riskBox.className = "text-2xl font-bold " +
-(risk==="High"?"text-red-600":risk==="Medium"?"text-yellow-600":"text-green-600");
+document.getElementById("kpiAvg").innerText = (weight/total).toFixed(1);
 
 }
 
 
 
+// Charts
 function createCharts(data){
 
-Object.values(charts).forEach(c=>c.destroy());
+// BASIC
+const basic = groupSum(data,"basic");
 
 charts.basic = new Chart(basicChart,{
 type:"doughnut",
-data:{labels:Object.keys(group(data,"basic")),
-datasets:[{data:Object.values(group(data,"basic"))}]}
+data:{
+labels:Object.keys(basic),
+datasets:[{data:Object.values(basic)}]
+}
 });
+
+
+// Company
+const company = groupSum(data,"company");
 
 charts.company = new Chart(companyChart,{
 type:"bar",
-data:{labels:Object.keys(group(data,"company")),
-datasets:[{data:Object.values(group(data,"company"))}]}
+data:{
+labels:Object.keys(company),
+datasets:[{data:Object.values(company)}]
+}
 });
+
+
+// OOS
+const oosCount = data.filter(x=>x.oos).length;
 
 charts.oos = new Chart(oosChart,{
 type:"pie",
 data:{
 labels:["OOS","Non OOS"],
-datasets:[{data:[
-data.filter(x=>x.oos).length,
-data.filter(x=>!x.oos).length
-]}]
+datasets:[{
+data:[oosCount,data.length-oosCount]
+}]
 }
 });
+
+
+// Trend
+const trend = groupSum(data,"month");
 
 charts.trend = new Chart(trendChart,{
 type:"line",
-data:{labels:Object.keys(group(data,"month")),
-datasets:[{data:Object.values(group(data,"month"))}]}
-});
-
-
-// Top 10 drivers
-let driverMap = group(data,"driver");
-
-let sorted = Object.entries(driverMap)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,10);
-
-charts.top = new Chart(topDriverChart,{
-type:"bar",
 data:{
-labels:sorted.map(x=>x[0]),
-datasets:[{data:sorted.map(x=>x[1])}]
+labels:Object.keys(trend),
+datasets:[{
+data:Object.values(trend)
+}]
 }
 });
 
@@ -287,7 +200,8 @@ datasets:[{data:sorted.map(x=>x[1])}]
 
 
 
-function group(data,key){
+// helper
+function groupSum(data,key){
 
 const result={};
 
@@ -298,6 +212,7 @@ result[d[key]]=(result[d[key]]||0)+d.weight;
 return result;
 
 }
+
 
 </script>
 
