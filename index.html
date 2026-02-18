@@ -1,72 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <title>Live Violation Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+body {
+font-family: Arial;
+background:#f4f6f8;
+padding:20px;
+}
+
+.card {
+background:white;
+padding:20px;
+margin:10px;
+display:inline-block;
+border-radius:8px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+canvas {
+background:white;
+padding:10px;
+margin-top:20px;
+}
+</style>
 </head>
 
-<body class="bg-gray-100 p-6">
+<body>
 
-<div class="max-w-7xl mx-auto bg-white p-6 shadow rounded">
+<h2>Live Violation Dashboard</h2>
 
-<h1 class="text-2xl font-bold mb-4">Live Violation Dashboard</h1>
+<div class="card">
+Total Violations: <span id="total">0</span>
+</div>
 
-<p class="mb-4">Total Violations: <span id="total">Loading...</span></p>
+<div class="card">
+OOS Violations: <span id="oos">0</span>
+</div>
 
-<div style="height:300px">
 <canvas id="chart"></canvas>
-</div>
-
-<table class="w-full mt-6 border">
-<thead>
-<tr class="bg-gray-200">
-<th class="p-2">Company</th>
-<th class="p-2">Driver</th>
-<th class="p-2">Score</th>
-</tr>
-</thead>
-<tbody id="table"></tbody>
-</table>
-
-</div>
 
 <script>
 
-// YOUR ONEDRIVE EXCEL EMBED LINK
-const excelURL = "https://cargaisonlogistics-my.sharepoint.com/personal/osama_cargosolutionexpress_com/_layouts/15/Doc.aspx?sourcedoc={080a1904-540a-4fac-a3c5-6a494d6d82ba}&action=embedview";
+const csvUrl = "https://cargaisonlogistics-my.sharepoint.com/:x:/g/personal/osama_cargosolutionexpress_com/IQB97JXf6jOtTKPv8vdrU2LYARAkFd9zTy0nMdyupdG9C9A?download=1";
 
-async function loadData(){
+Papa.parse(csvUrl, {
 
-// DEMO DATA (replace later with Excel API)
-const data = [
-{Company:"Express Inc", Driver:"John", Score:20},
-{Company:"Georgia LLC", Driver:"Mike", Score:15},
-{Company:"Ohio Inc", Driver:"Alex", Score:30}
-];
+download: true,
+header: true,
+
+complete: function(results) {
+
+const data = results.data.filter(row => row.Driver);
 
 document.getElementById("total").innerText = data.length;
 
-document.getElementById("table").innerHTML =
-data.map(d=>`
-<tr>
-<td class="p-2">${d.Company}</td>
-<td class="p-2">${d.Driver}</td>
-<td class="p-2">${d.Score}</td>
-</tr>
-`).join("");
+const oos = data.filter(row => row.OOS == "YES" || row.OOS == "Yes").length;
 
-new Chart(document.getElementById("chart"),{
+document.getElementById("oos").innerText = oos;
 
-type:"bar",
+const companyCount = {};
 
-data:{
-labels:data.map(d=>d.Driver),
+data.forEach(row => {
 
-datasets:[{
-label:"Score",
-data:data.map(d=>d.Score)
+const company = row.Company || "Unknown";
+
+companyCount[company] = (companyCount[company] || 0) + 1;
+
+});
+
+const labels = Object.keys(companyCount);
+const values = Object.values(companyCount);
+
+new Chart(document.getElementById("chart"), {
+
+type: "bar",
+
+data: {
+labels: labels,
+datasets: [{
+label: "Violations by Company",
+data: values
 }]
 }
 
@@ -74,7 +91,7 @@ data:data.map(d=>d.Score)
 
 }
 
-loadData();
+});
 
 </script>
 
