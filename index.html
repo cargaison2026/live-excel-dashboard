@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Live Violation Dashboard</title>
+<title>Executive Safety Dashboard 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
@@ -9,88 +9,162 @@
 body {
 font-family: Arial;
 background:#f4f6f8;
-padding:20px;
+padding:30px;
 }
 
-.card {
+h1 {
+margin-bottom:20px;
+}
+
+.kpi-container {
+display:flex;
+gap:20px;
+margin-bottom:30px;
+}
+
+.kpi {
 background:white;
 padding:20px;
-margin:10px;
-display:inline-block;
-border-radius:8px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
+flex:1;
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
+text-align:center;
+}
+
+.kpi h2 {
+margin:0;
+font-size:28px;
+color:#1f2937;
+}
+
+.kpi p {
+margin:5px 0 0 0;
+color:#6b7280;
+}
+
+.chart-grid {
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:30px;
 }
 
 canvas {
 background:white;
-padding:10px;
-margin-top:20px;
+padding:15px;
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
 }
 </style>
 </head>
 
 <body>
 
-<h2>Live Violation Dashboard</h2>
+<h1>Safety & Violation Executive Dashboard</h1>
 
-<div class="card">
-Total Violations: <span id="total">0</span>
+<div class="kpi-container">
+<div class="kpi">
+<h2 id="total">0</h2>
+<p>Total Violations</p>
 </div>
 
-<div class="card">
-OOS Violations: <span id="oos">0</span>
+<div class="kpi">
+<h2 id="oos">0</h2>
+<p>Out of Service</p>
 </div>
 
-<canvas id="chart"></canvas>
+<div class="kpi">
+<h2 id="totalWeight">0</h2>
+<p>Total Severity Weight</p>
+</div>
+
+<div class="kpi">
+<h2 id="avgWeight">0</h2>
+<p>Avg Weight / Violation</p>
+</div>
+</div>
+
+<div class="chart-grid">
+<canvas id="basicChart"></canvas>
+<canvas id="companyChart"></canvas>
+<canvas id="oosChart"></canvas>
+<canvas id="weekChart"></canvas>
+</div>
 
 <script>
 
-const csvUrl = "https://cargaisonlogistics-my.sharepoint.com/:x:/g/personal/osama_cargosolutionexpress_com/IQB97JXf6jOtTKPv8vdrU2LYARAkFd9zTy0nMdyupdG9C9A?download=1";
+const csvUrl = "PASTE_YOUR_CSV_DOWNLOAD_LINK_HERE";
 
 Papa.parse(csvUrl, {
-
 download: true,
 header: true,
-
 complete: function(results) {
 
-const data = results.data.filter(row => row.Driver);
+const data = results.data.filter(row => row["Driver Name"]);
 
-document.getElementById("total").innerText = data.length;
+const total = data.length;
 
-const oos = data.filter(row => row.OOS == "YES" || row.OOS == "Yes").length;
+const oos = data.filter(row => row["Out of Service"]?.trim() === "YES").length;
 
+const totalWeight = data.reduce((sum,row)=> sum + Number(row["TOTAL Weight"] || 0),0);
+
+const avgWeight = totalWeight / total;
+
+document.getElementById("total").innerText = total;
 document.getElementById("oos").innerText = oos;
+document.getElementById("totalWeight").innerText = totalWeight;
+document.getElementById("avgWeight").innerText = avgWeight.toFixed(2);
 
-const companyCount = {};
-
-data.forEach(row => {
-
-const company = row.Company || "Unknown";
-
-companyCount[company] = (companyCount[company] || 0) + 1;
-
+function groupBy(field) {
+const map = {};
+data.forEach(row=>{
+const key = row[field] || "Unknown";
+map[key] = (map[key] || 0) + 1;
 });
+return map;
+}
 
-const labels = Object.keys(companyCount);
-const values = Object.values(companyCount);
-
-new Chart(document.getElementById("chart"), {
-
-type: "bar",
-
-data: {
-labels: labels,
-datasets: [{
-label: "Violations by Company",
-data: values
+function createChart(id,type,labels,values,label){
+new Chart(document.getElementById(id),{
+type:type,
+data:{
+labels:labels,
+datasets:[{
+label:label,
+data:values
 }]
+},
+options:{
+responsive:true,
+plugins:{legend:{display:true}}
 }
-
 });
-
 }
 
+const basicData = groupBy("BASIC");
+createChart("basicChart","bar",
+Object.keys(basicData),
+Object.values(basicData),
+"Violations by BASIC");
+
+const companyData = groupBy("Company");
+createChart("companyChart","bar",
+Object.keys(companyData),
+Object.values(companyData),
+"Violations by Company");
+
+const oosData = groupBy("Out of Service");
+createChart("oosChart","pie",
+Object.keys(oosData),
+Object.values(oosData),
+"OOS Distribution");
+
+const weekData = groupBy("Week");
+createChart("weekChart","line",
+Object.keys(weekData),
+Object.values(weekData),
+"Weekly Trend");
+
+}
 });
 
 </script>
