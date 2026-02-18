@@ -1,68 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Violation Dashboard</title>
+<title>CSA Safety Executive Dashboard</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
 <style>
-body{
-font-family:Arial;
-background:#f4f6f9;
-padding:20px;
-}
-
-.kpi{
-display:inline-block;
-background:white;
-padding:20px;
-margin:10px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-width:200px;
-text-align:center;
-}
-
-canvas{
-background:white;
-margin-top:20px;
-padding:15px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
+.chart-container{
+position:relative;
+height:260px;
 }
 </style>
 
 </head>
 
-<body>
+<body class="bg-gray-100">
 
-<h1>Live Safety Dashboard</h1>
+<div class="container mx-auto p-6">
 
-<div class="kpi">
-<h2 id="total">0</h2>
-Total Violations
+<h1 class="text-3xl font-bold mb-4">
+CSA Safety Executive Dashboard
+</h1>
+
+<!-- KPI -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500">Total Violations</p>
+<p id="kpiTotal" class="text-2xl font-bold">0</p>
 </div>
 
-<div class="kpi">
-<h2 id="oos">0</h2>
-Out of Service
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500">OOS Violations</p>
+<p id="kpiOOS" class="text-2xl font-bold text-red-600">0</p>
 </div>
 
-<div class="kpi">
-<h2 id="weight">0</h2>
-Total Weight
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500">Total Severity Weight</p>
+<p id="kpiWeight" class="text-2xl font-bold text-orange-600">0</p>
 </div>
 
-<br>
+<div class="bg-white p-4 rounded shadow">
+<p class="text-gray-500">Average Severity</p>
+<p id="kpiAvg" class="text-2xl font-bold text-green-600">0</p>
+</div>
 
-<canvas id="chart1"></canvas>
-<canvas id="chart2"></canvas>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-2 gap-6">
+
+<div class="bg-white p-4 rounded shadow">
+<h2 class="font-semibold mb-2">BASIC Distribution</h2>
+<div class="chart-container">
+<canvas id="basicChart"></canvas>
+</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<h2 class="font-semibold mb-2">Company Comparison</h2>
+<div class="chart-container">
+<canvas id="companyChart"></canvas>
+</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<h2 class="font-semibold mb-2">OOS vs Non-OOS</h2>
+<div class="chart-container">
+<canvas id="oosChart"></canvas>
+</div>
+</div>
+
+<div class="bg-white p-4 rounded shadow">
+<h2 class="font-semibold mb-2">Severity Distribution</h2>
+<div class="chart-container">
+<canvas id="trendChart"></canvas>
+</div>
+</div>
+
+</div>
+
+</div>
 
 <script>
 
 const csvUrl = "VIOLATION SHEET 2026.csv";
+
+let charts={};
 
 Papa.parse(csvUrl,{
 download:true,
@@ -70,54 +97,122 @@ header:true,
 
 complete:function(results){
 
-const data = results.data.filter(x=>x["Driver Name"]);
+const data=results.data.filter(x=>x["Driver Name"]);
 
-document.getElementById("total").innerText = data.length;
+buildDashboard(data);
 
-const oos = data.filter(x=>x["Out of Service"]==="YES").length;
-document.getElementById("oos").innerText = oos;
+}
 
-const weight = data.reduce((a,b)=>a+Number(b["TOTAL Weight"]||0),0);
-document.getElementById("weight").innerText = weight;
-
-const basicCount={};
-
-data.forEach(row=>{
-const key=row["BASIC"];
-basicCount[key]=(basicCount[key]||0)+1;
 });
 
-new Chart(document.getElementById("chart1"),{
+function buildDashboard(data){
+
+const total=data.length;
+
+const oos=data.filter(x=>x["Out of Service"]==="YES").length;
+
+const weight=data.reduce(
+(a,b)=>a+Number(b["TOTAL Weight"]||0),0);
+
+const avg=(weight/total).toFixed(1);
+
+document.getElementById("kpiTotal").innerText=total;
+document.getElementById("kpiOOS").innerText=oos;
+document.getElementById("kpiWeight").innerText=weight;
+document.getElementById("kpiAvg").innerText=avg;
+
+buildBasicChart(data);
+buildCompanyChart(data);
+buildOOSChart(data);
+buildTrendChart(data);
+
+}
+
+function buildBasicChart(data){
+
+const map={};
+
+data.forEach(x=>{
+map[x["BASIC"]] =
+(map[x["BASIC"]]||0)+
+Number(x["TOTAL Weight"]||0);
+});
+
+charts.basic=new Chart(
+document.getElementById("basicChart"),
+{
+type:"doughnut",
+data:{
+labels:Object.keys(map),
+datasets:[{
+data:Object.values(map)
+}]
+}
+});
+
+}
+
+function buildCompanyChart(data){
+
+const map={};
+
+data.forEach(x=>{
+map[x["Company"]] =
+(map[x["Company"]]||0)+
+Number(x["TOTAL Weight"]||0);
+});
+
+charts.company=new Chart(
+document.getElementById("companyChart"),
+{
 type:"bar",
 data:{
-labels:Object.keys(basicCount),
+labels:Object.keys(map),
 datasets:[{
-label:"Violations by BASIC",
-data:Object.values(basicCount)
+data:Object.values(map)
 }]
 }
 });
 
-const companyCount={};
+}
 
-data.forEach(row=>{
-const key=row["Company"];
-companyCount[key]=(companyCount[key]||0)+1;
-});
+function buildOOSChart(data){
 
-new Chart(document.getElementById("chart2"),{
+const oos=data.filter(
+x=>x["Out of Service"]==="YES").length;
+
+const non=data.length-oos;
+
+charts.oos=new Chart(
+document.getElementById("oosChart"),
+{
 type:"pie",
 data:{
-labels:Object.keys(companyCount),
+labels:["OOS","Non OOS"],
 datasets:[{
-data:Object.values(companyCount)
+data:[oos,non]
 }]
 }
 });
 
 }
 
+function buildTrendChart(data){
+
+charts.trend=new Chart(
+document.getElementById("trendChart"),
+{
+type:"line",
+data:{
+labels:data.map((x,i)=>i+1),
+datasets:[{
+data:data.map(
+x=>Number(x["TOTAL Weight"]||0))
+}]
+}
 });
+
+}
 
 </script>
 
